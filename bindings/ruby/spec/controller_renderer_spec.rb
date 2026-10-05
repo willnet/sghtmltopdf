@@ -32,6 +32,21 @@ RSpec.describe "PDF controller rendering" do
     expect(controller.response_body.join).to eq("%PDF-test")
   end
 
+  it "accepts PDF options in the second argument without sending a response" do
+    options = {pdf: "invoice", inline: "Invoice", layout: false,
+               page_size: "A5", filename: "unused.pdf", status: 201}.freeze
+    headers = controller.response.headers.to_h.dup
+
+    expect(controller.render_to_string(nil, options)).to eq("%PDF-test")
+    expect(controller.response_body).to be_nil
+    expect(controller.performed?).to be_falsey
+    expect(controller.status).to eq(200)
+    expect(controller.response.headers.to_h).to eq(headers)
+
+    controller.send(:send_data, "%PDF-test", type: "application/pdf", filename: "invoice.pdf")
+    expect(controller.response_body.join).to eq("%PDF-test")
+  end
+
   it "still sends a PDF response from render" do
     controller.render(pdf: "invoice", inline: "Invoice", page_size: "A5", status: 201)
 

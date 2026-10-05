@@ -12,12 +12,15 @@ module Sghtmltopdf
   class Renderer
     module RenderToString
       def render_to_string(*args, &block)
-        options = args.first
+        options = args.first.is_a?(Hash) ? args.first : args[1]
         return super unless options.is_a?(Hash) && options.key?(:pdf)
 
         # Rails custom renderers also run from render_to_string. The response
         # renderer calls send_data, so bypass it when only PDF bytes are wanted.
-        options = options.dup
+        # Rails normalizes positional template names by updating the options.
+        # Copy hashes first so the caller's options remain unchanged.
+        normalized_args = args.map { |arg| arg.is_a?(Hash) ? arg.dup : arg }
+        options = _normalize_args(*normalized_args, &block)
         renderer = Renderer.new(options.delete(:pdf), options, default_name: action_name)
         html = render_to_string(**renderer.render_options, &block)
         renderer.body_for(html)

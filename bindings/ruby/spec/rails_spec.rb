@@ -36,6 +36,23 @@ RSpec.describe "a Rails controller", type: :rails do
       expect(controller.response_body.join).to eq(pdf)
     end
 
+    it "accepts a positional template name without changing the options or response" do
+      options = {pdf: "invoice", layout: "pdf", page_size: "A5",
+                 filename: "unused.pdf", status: 201}.freeze
+      headers = controller.response.headers.to_h.dup
+      pdf = controller.render_to_string("invoices/show", options)
+      html = controller.render_to_string(template: "invoices/show", layout: "pdf")
+
+      expect(normalize(pdf)).to eq(normalize(Sghtmltopdf.render(html, page_size: "A5")))
+      expect(controller.response_body).to be_nil
+      expect(controller.performed?).to be_falsey
+      expect(controller.response.status).to eq(200)
+      expect(controller.response.headers.to_h).to eq(headers)
+
+      controller.send(:send_data, pdf, filename: "invoice.pdf", type: "application/pdf")
+      expect(controller.response_body.join).to eq(pdf)
+    end
+
     it "returns HTML with show_as_html without setting a response body" do
       html = controller.render_to_string(pdf: "invoice", template: "invoices/show", show_as_html: true)
 
